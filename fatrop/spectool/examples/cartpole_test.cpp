@@ -131,7 +131,7 @@ int main()
           if (bench_iter == bench_num) {
                std::cout << "\n\n";
                std::cout << "Total run " << bench_num << " benchmarks" << std::endl;
-               std::cout << "acados(discrete model)" 
+               std::cout << "fatrop" 
                          << "\n    max time(ms): " << *std::max_element(solve_time_vec.begin(), solve_time_vec.end())
                          << "\n    min time(ms): " << *std::min_element(solve_time_vec.begin(), solve_time_vec.end())
                          << "\n    avg time(ms): " << (std::accumulate(solve_time_vec.begin(), solve_time_vec.end(), 0.0) / solve_time_vec.size());
