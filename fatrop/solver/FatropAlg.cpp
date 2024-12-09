@@ -20,6 +20,23 @@
 using namespace fatrop;
 using namespace std;
 
+#include <time.h>
+class Timer {
+public:
+    explicit Timer() { start(); }
+    double getMs() { return static_cast<double>(getNs()) / 1.e6; }
+    double getSeconds() { return static_cast<double>(getNs()) / 1.e9; }
+private:
+    void start() { clock_gettime(CLOCK_MONOTONIC, &_startTime); }
+    int64_t getNs() {
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        return (int64_t)(now.tv_nsec - _startTime.tv_nsec) +
+            1000000000 * (now.tv_sec - _startTime.tv_sec);
+    }
+    struct timespec _startTime;
+};
+
 FatropAlg::FatropAlg(
     const shared_ptr<FatropNLP> &fatropnlp,
     const shared_ptr<FatropData> &fatropdata,
@@ -89,6 +106,9 @@ fatrop_int FatropAlg::optimize()
     bool restore_watchdog_step = false;
     blasfeo_timer timer;
     blasfeo_tic(&timer);
+
+    Timer my_timer;
+
     reset();
     const double mu_min = tol / 10;
     double mu = mu0;
@@ -185,6 +205,8 @@ fatrop_int FatropAlg::optimize()
         // if (emu < tol)
         {
             double total_time = blasfeo_toc(&timer);
+            std::cout << "====================my time(ms): " << my_timer.getMs() << std::endl;
+            
             journaller_->print_iterations(resto_problem_);
             if (no_conse_small_sd == 2)
             {
