@@ -9,6 +9,7 @@
 #include "fatrop/spectool/spec/ustage_eval_casadi.hpp"
 #include "fatrop/ocp/UStageOCPImpl.hpp"
 #include "fatrop/spectool/spec/ocp.hpp"
+#include "Timer.hpp"
 namespace fatrop
 {
     namespace spectool
@@ -56,11 +57,15 @@ namespace fatrop
         public:
             void transcribe(const Ocp &ocp_, const cs::Dict &opts)
             {
+                Timer fatrop_impl_build_timer;
                 // check that there are no constraints over multiple timesteps
                 if (ocp_.get_multi_ustage_constraints().size() > 0)
                     throw std::runtime_error("Fatrop solver does not support constraints over different time steps.");
                 int n_global_parameters_ = cs::MX::veccat(ocp_.get_global_parameters()).size1();
+
                 fatrop_impl = std::make_shared<UStageOCPImpl<FatropuStageEvalCasadi>>(UStageEvalBuilder::build(ocp_, opts), n_global_parameters_);
+                // std::cout << "=========================fatrop_impl build time(ms): " << fatrop_impl_build_timer.getMs() << std::endl;
+                
                 funct_opts = opts;
             }
             cs::Dict stats()
@@ -87,10 +92,14 @@ namespace fatrop
             }
             cs::Function to_function(const std::string &name, const Ocp &ocp_, std::vector<cs::MX> &gist_in, std::vector<cs::MX> &gist_out, const cs::Dict &opts)
             {
+                Timer gist_timer;
                 gist(ocp_, gist_in, gist_out);
+                // std::cout << "=========================gist time(ms): " << gist_timer.getMs() << std::endl;
                 // return FatropFunction(name, fatrop_impl, opts);
                 // C-api approach
                 // C_api
+
+                Timer solver_app_build_timer;
                 app = std::make_shared<fatrop::OCPAbstractApplication>(fatrop_impl);
                 for (auto opt : opts)
                 {
@@ -104,6 +113,8 @@ namespace fatrop
                         app->set_option(opt.first, (std::string)opt.second);
                 }
                 app->build();
+                // std::cout << "=========================solver_app build time(ms): " << solver_app_build_timer.getMs() << std::endl;
+
                 // go over the options and set
                 return FatropFunction(name, app, opts, funct_opts);
             };

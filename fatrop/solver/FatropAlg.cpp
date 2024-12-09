@@ -205,7 +205,7 @@ fatrop_int FatropAlg::optimize()
         // if (emu < tol)
         {
             double total_time = blasfeo_toc(&timer);
-            std::cout << "====================my time(ms): " << my_timer.getMs() << std::endl;
+            // std::cout << "=========================optimize algorithm time(ms): " << my_timer.getMs() << std::endl;
             
             journaller_->print_iterations(resto_problem_);
             if (no_conse_small_sd == 2)

@@ -6,7 +6,8 @@
 #include "fatrop/ocp/StageOCPApplication.hpp"
 #include "fatrop/ocp/OCPDims.hpp"
 #include "fatrop/ocp/CasadiCApiUserdataWrap.hpp"
-#include "fatrop/blasfeo_wrapper/LinearAlgebraBlasfeo.hpp"  
+#include "fatrop/blasfeo_wrapper/LinearAlgebraBlasfeo.hpp"
+#include "Timer.hpp"  
 namespace fatrop
 {
     namespace spectool
@@ -78,6 +79,8 @@ namespace fatrop
             int eval(const double **arg,
                      double **res, casadi_int *iw, double *w, void *mem) const override
             {
+                Timer eval_fatrop_func_timer;
+
                 // no dynamic memory allocations here
                 std::copy(arg[0], arg[0] + n_vars, (double *)arg_initial_vars.data());
                 std::copy(arg[1], arg[1] + n_stage_params, (double *)arg_stage_parameters.data());
@@ -86,6 +89,9 @@ namespace fatrop
                 app->set_params(arg_global_parameters, arg_stage_parameters);
                 int ret = app->optimize();
                 double *last_sol = ((VEC *)app->last_solution_primal())->pa;
+
+                // std::cout << "=========================eval fatrop func time(ms): " << eval_fatrop_func_timer.getMs() << std::endl;
+
                 if (res[0])
                     std::copy(last_sol, last_sol + n_vars, res[0]);
                 if(error_on_fail_ && ret != 0)
@@ -113,6 +119,8 @@ namespace fatrop
         public:
             FatropFunction(const std::string&name,  const std::shared_ptr<fatrop::OCPAbstractApplication> app_, const cs::Dict &options, const cs::Dict& funct_opts)
             {
+                Timer construct_fatropfunc_timer;
+
                 if (!is_null())
                 {
                     casadi_error("Cannot create 'FatropFunction': Internal class already created");
@@ -122,6 +130,8 @@ namespace fatrop
                 auto options_ = cs::Dict();
                 ptr -> error_on_fail_ = cs::get_from_dict(funct_opts, "error_on_fail", true);
                 static_cast<cs::Function *>(this)->operator->()->casadi::FunctionInternal::construct(options_);
+
+                // std::cout << "=========================construct fatrop func time(ms): " << construct_fatropfunc_timer.getMs() << std::endl;
             }
 
         private:

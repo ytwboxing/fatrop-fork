@@ -2,6 +2,7 @@
 #include "fatrop/spectool/solver_interfaces/fatrop/fatrop_solver.hpp"
 #include "fatrop/spectool/solver_interfaces/casadi_opti/opti_solver.hpp"
 #include <numeric>
+#include "Timer.hpp"
 namespace fatrop
 {
     namespace spectool
@@ -141,6 +142,7 @@ namespace fatrop
         }
         cs::Function Ocp::to_function(const std::string &name, const std::vector<cs::MX> &in, const std::vector<cs::MX> &out) const
         {
+            Timer make_solver_ptr_timer;
             if (get()->solver_name == "")
                 throw std::runtime_error("solver not set, use ocp.solver(\"fatrop\") or ocp.solver(\"ipopt\")");
             if (get()->solver_name == "fatrop")
@@ -149,10 +151,19 @@ namespace fatrop
                 get()->solver_ptr = std::make_shared<SolverOpti>();
             else
                 throw std::runtime_error("solver not supported");
+            // std::cout << "=========================make solver_ptr time(ms): " << make_solver_ptr_timer.getMs() << std::endl;
+
+            Timer solver_transcribe_timer;
             get()->solver_ptr->transcribe(*this, function_opts_);
+            // std::cout << "=========================solver_ptr transcribe time(ms): " << solver_transcribe_timer.getMs() << std::endl;
+            
             std::vector<cs::MX> gist_solver_in;
             std::vector<cs::MX> gist_solver_out;
+
+            Timer fatrop_func_build_timer;
             auto fatrop_func = get()->solver_ptr->to_function(name, *this, gist_solver_in, gist_solver_out, solver_opts_);
+            // std::cout << "=========================fatrop_func build time(ms): " << fatrop_func_build_timer.getMs() << std::endl;
+            
             cs::MX vars = gist_solver_in[0];
             cs::MX initial_guess = gist_solver_in[0];
             auto helper0 = cs::Function("helper0", in, {vars}, cs::Dict{{"allow_free", true}});
@@ -165,7 +176,11 @@ namespace fatrop
                 std::vector<cs::MX> init_evals = eval_at_initial(free_inits);
                 initial_guess = cs::MX::substitute({initial_guess}, free_inits, init_evals)[0];
             }
+
+            Timer fatrop_func_eval_timer;
             auto result = fatrop_func({initial_guess, gist_solver_in[1], gist_solver_in[2]});
+            // std::cout << "=========================fatrop_func eval time(ms): " << fatrop_func_eval_timer.getMs() << std::endl;
+            
             return cs::Function(name, in, cs::MX::substitute(out, gist_solver_out, result));
         }
         void Ocp::set_initial(const cs::MX &var, const cs::MX &value)

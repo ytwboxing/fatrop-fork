@@ -25,11 +25,22 @@ target_link_libraries(spectool
     # casadi
 )
 
+add_subdirectory(matplotlib-cpp)
+
+find_package(Python3 COMPONENTS Development)
+
 target_include_directories(spectool PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CASADI_SOURCE}
+    # ${Python3_INCLUDE_DIRS}/site-packages/numpy/_core/include
+    ${Python3_INCLUDE_DIRS}
+    /home/ytw/mambaforge/lib/python3.12/site-packages/numpy/_core/include
 )
-target_link_libraries(spectool ${CASADI_LIB})
+message(${Python3_INCLUDE_DIRS})
+target_link_libraries(spectool 
+    ${CASADI_LIB}
+    ${Python3_LIBRARIES}
+)
 
 add_executable(example examples/example.cpp)
 target_link_libraries(example spectool) 
